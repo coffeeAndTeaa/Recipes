@@ -4,12 +4,13 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.jingyu.recipe.models.Recipe;
+import com.jingyu.recipe.requests.RecipeApiClient;
 
 import java.util.List;
 
 public class RecipeRepository {
     private static RecipeRepository instance;
-    private MutableLiveData<List<Recipe>> mRecipes;
+    private RecipeApiClient mRecipeApiClient;
 
     public static RecipeRepository getInstance() {
         if (instance == null) {
@@ -19,11 +20,18 @@ public class RecipeRepository {
     }
 
     private RecipeRepository() {
-        mRecipes = new MutableLiveData<>();
+        mRecipeApiClient = RecipeApiClient.getInstance();
     }
 
     public LiveData<List<Recipe>> getRecipes(){
-        return mRecipes;
+        return mRecipeApiClient.getRecipes();
+    }
+
+    public void searchRecipesApi(String query, int pageNumber) {
+        if (pageNumber == 0) {
+            pageNumber = 1;
+        }
+        mRecipeApiClient.searchRecipeApi(query, pageNumber);
     }
 
 

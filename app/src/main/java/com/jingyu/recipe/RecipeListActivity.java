@@ -46,44 +46,23 @@ public class RecipeListActivity extends BaseActivity {
 
     }
 
+    public void searchRecipesApi(String query, int pageNumber) {
+        mRecipeListViewModel.searchRecipesApi(query, pageNumber);
+    }
+
     private void testRetrofitRequest(){
-        RecipeApi recipeApi = ServiceGenerator.getRecipeApi();
-
-        Call<RecipeSearchResponse> responseCall = recipeApi
-                .searchRecipe("pork", "1");
-
-        responseCall.enqueue(new Callback<RecipeSearchResponse>() {
-            @Override
-            public void onResponse(Call<RecipeSearchResponse> call, Response<RecipeSearchResponse> response) {
-                Log.d(TAG, "onResponse: server response" + response.toString());
-                if (response.code() == 200) {
-                    Log.d(TAG, "onResponse: " + response.body().toString());
-                    List<Recipe> recipes = new ArrayList<>(response.body().getRecipes());
-                    for (Recipe recipe : recipes) {
-                        Log.d(TAG, "onResponse: " + recipe.getTitle());
-                    }
-                } else {
-                    try {
-                        Log.d(TAG, "onResponse: " + response.errorBody().string());
-                    } catch(IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<RecipeSearchResponse> call, Throwable t) {
-
-            }
-        });
-
+        searchRecipesApi("pork", 1);
     }
 
     private void subscribeObservers(){
         mRecipeListViewModel.getRecipes().observe(this, new Observer<List<Recipe>>() {
             @Override
             public void onChanged(List<Recipe> recipes) {
-
+                if (recipes != null) {
+                    for (Recipe recipe: recipes) {
+                        Log.d(TAG, "onChanged: "+ recipe.getTitle());
+                    }
+                }
             }
         });
     }
