@@ -10,29 +10,30 @@ public class Recipe implements Parcelable {
     private String title;
     private String publisher;
     private String[] ingredients;
-    private String recipe_id;
-    private String image_url;
-    private float social_rank;
+    private String id;
+    private String imageUrl;
+    private float socialUrl;
 
-    public Recipe(String title, String publisher, String[] ingredients, String recipe_id, String image_url, float social_rank) {
+    public Recipe(String title, String publisher, String[] ingredients, String id, String imageUrl, float socialUrl) {
         this.title = title;
         this.publisher = publisher;
         this.ingredients = ingredients;
-        this.recipe_id = recipe_id;
-        this.image_url = image_url;
-        this.social_rank = social_rank;
+        this.id = id;
+        this.imageUrl = imageUrl;
+        this.socialUrl = socialUrl;
     }
 
     public Recipe() {
     }
 
+
     protected Recipe(Parcel in) {
         title = in.readString();
         publisher = in.readString();
         ingredients = in.createStringArray();
-        recipe_id = in.readString();
-        image_url = in.readString();
-        social_rank = in.readFloat();
+        id = in.readString();
+        imageUrl = in.readString();
+        socialUrl = in.readFloat();
     }
 
     public static final Creator<Recipe> CREATOR = new Creator<Recipe>() {
@@ -71,28 +72,32 @@ public class Recipe implements Parcelable {
         this.ingredients = ingredients;
     }
 
-    public String getRecipe_id() {
-        return recipe_id;
+    public String getId() {
+        return id;
     }
 
-    public void setRecipe_id(String recipe_id) {
-        this.recipe_id = recipe_id;
+    public void setId(String id) {
+        this.id = id;
     }
 
-    public String getImage_url() {
-        return image_url;
+    public String getImageUrl() {
+        return imageUrl;
     }
 
-    public void setImage_url(String image_url) {
-        this.image_url = image_url;
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
-    public float getSocial_rank() {
-        return social_rank;
+    public float getSocialUrl() {
+        return socialUrl;
     }
 
-    public void setSocial_rank(float social_rank) {
-        this.social_rank = social_rank;
+    public void setSocialUrl(float socialUrl) {
+        this.socialUrl = socialUrl;
+    }
+
+    public static Creator<Recipe> getCREATOR() {
+        return CREATOR;
     }
 
     @Override
@@ -101,9 +106,9 @@ public class Recipe implements Parcelable {
                 "title='" + title + '\'' +
                 ", publisher='" + publisher + '\'' +
                 ", ingredients=" + Arrays.toString(ingredients) +
-                ", recipe_id='" + recipe_id + '\'' +
-                ", image_url='" + image_url + '\'' +
-                ", social_rank=" + social_rank +
+                ", id='" + id + '\'' +
+                ", imageUrl='" + imageUrl + '\'' +
+                ", socialUrl=" + socialUrl +
                 '}';
     }
 
@@ -117,8 +122,8 @@ public class Recipe implements Parcelable {
         parcel.writeString(title);
         parcel.writeString(publisher);
         parcel.writeStringArray(ingredients);
-        parcel.writeString(recipe_id);
-        parcel.writeString(image_url);
-        parcel.writeFloat(social_rank);
+        parcel.writeString(id);
+        parcel.writeString(imageUrl);
+        parcel.writeFloat(socialUrl);
     }
 }
