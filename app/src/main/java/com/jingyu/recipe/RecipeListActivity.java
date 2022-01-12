@@ -1,5 +1,6 @@
 package com.jingyu.recipe;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.lifecycle.Observer;
@@ -10,6 +11,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 
 import com.jingyu.recipe.adapters.OnRecipeListener;
@@ -19,6 +22,7 @@ import com.jingyu.recipe.requests.RecipeApi;
 import com.jingyu.recipe.requests.ServiceGenerator;
 import com.jingyu.recipe.requests.responses.RecipeSearchResponse;
 import com.jingyu.recipe.util.Constants;
+import com.jingyu.recipe.util.VerticalSpacingItemDecorator;
 import com.jingyu.recipe.viewmodels.RecipeListViewModel;
 
 import java.io.IOException;
@@ -35,12 +39,14 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
     private RecipeListViewModel mRecipeListViewModel;
     private RecyclerView mRecyclerView;
     private RecipeRecyclerAdapter mAdapter;
+    private SearchView mSearchView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_recipe_list);
         mRecyclerView = findViewById(R.id.recipe_list);
+        mSearchView = findViewById(R.id.search_view);
 
         mRecipeListViewModel = new ViewModelProvider(this).get(RecipeListViewModel.class);
 
@@ -50,23 +56,35 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
         if(!mRecipeListViewModel.isViewingRecipes()){
             displaySearchCategories();
         }
+        setSupportActionBar(findViewById(R.id.toolbar));
 
     }
 
 
     private void initRecyclerView(){
+        VerticalSpacingItemDecorator decorator = new VerticalSpacingItemDecorator(30);
+        mRecyclerView.addItemDecoration(decorator);
         mAdapter = new RecipeRecyclerAdapter(this);
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+                if(!mRecyclerView.canScrollVertically(1)){
+                    // search the next page
+                    mRecipeListViewModel.searchNextPage();
+                }
+            }
+        });
     }
 
     private void initSearchView(){
-        final SearchView searchView = findViewById(R.id.search_view);
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 mAdapter.displayLoading();
                 mRecipeListViewModel.searchRecipesApi(query, 1);
+                mSearchView.clearFocus();
                 return false;
             }
 
@@ -82,10 +100,10 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
             @Override
             public void onChanged(List<Recipe> recipes) {
                 if (recipes != null) {
-                    for (Recipe re: recipes) {
-                       re.toString();
+                    if (mRecipeListViewModel.isViewingRecipes()){
+                        mRecipeListViewModel.setmIsPerformingQuery(false);
+                        mAdapter.setRecipes(recipes);
                     }
-                    mAdapter.setRecipes(recipes);
                 }
             }
         });
@@ -101,11 +119,36 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
     public void onCategoryClick(String category) {
         mAdapter.displayLoading();
         mRecipeListViewModel.searchRecipesApi(category, 1);
+        mSearchView.clearFocus();
     }
 
     private void displaySearchCategories(){
         Log.d(TAG, "displaySearchCategories: ");
         mRecipeListViewModel.setmIsViewingRecipes(false);
         mAdapter.displaySearchCategories();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mRecipeListViewModel.onBackPressed()){
+            super.onBackPressed();
+        }
+        else {
+            displaySearchCategories();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.recipe_search_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_categories) {
+            displaySearchCategories();
+        }
+        return super.onOptionsItemSelected(item);
     }
 }
