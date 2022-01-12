@@ -9,9 +9,11 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.jingyu.recipe.AppExecutors;
 import com.jingyu.recipe.models.Recipe;
+import com.jingyu.recipe.requests.responses.RecipeResponse;
 import com.jingyu.recipe.requests.responses.RecipeSearchResponse;
 import com.jingyu.recipe.util.Constants;
 
+import java.io.IOException;
 import java.lang.invoke.MutableCallSite;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +29,9 @@ public class RecipeApiClient {
 
     private static RecipeApiClient instance;
     private MutableLiveData<List<Recipe>> mRecipes;
+    private MutableLiveData<Recipe> mRecipe;
     private RetrieveRecipeRunnable mRetrieveRecipeRunnable;
+    private RecipeRunnable mRecipeRunnable;
 
     public static RecipeApiClient getInstance() {
         if (instance == null) {
@@ -37,12 +41,15 @@ public class RecipeApiClient {
     }
 
     private RecipeApiClient() {
+        mRecipe = new MutableLiveData<>();
         mRecipes = new MutableLiveData<>();
     }
 
     public LiveData<List<Recipe>> getRecipes(){
         return mRecipes;
     }
+
+    public LiveData<Recipe> getRecipe() {return mRecipe;}
 
     public void searchRecipeApi(String query, int pageNumber) {
         if(mRetrieveRecipeRunnable != null) {
@@ -58,6 +65,63 @@ public class RecipeApiClient {
                 handler.cancel(true);
             }
         }, NETWORK_TIMEOUT, TimeUnit.MILLISECONDS);
+    }
+
+    public void searchRecipeById(String rId) {
+        if (mRecipeRunnable != null) {
+            mRecipeRunnable = null;
+        }
+        mRecipeRunnable = new RecipeRunnable(rId);
+        final Future handler = AppExecutors.getInstance().networkIO().submit(mRecipeRunnable);
+        AppExecutors.getInstance().networkIO().schedule(new Runnable() {
+            @Override
+            public void run() {
+                // let the user know it is time out
+                handler.cancel(true);
+            }
+        }, NETWORK_TIMEOUT, TimeUnit.MILLISECONDS);
+    }
+
+    private class RecipeRunnable implements Runnable {
+
+        private String rId;
+        private boolean cancelRequest;
+
+        public RecipeRunnable(String rId) {
+            this.rId = rId;
+            this.cancelRequest = false;
+        }
+
+        @Override
+        public void run() {
+            try {
+                Response response = getRecipe(rId).execute();
+                if (cancelRequest) {
+                    return;
+                }
+                if (response.code() == 200) {
+                    Recipe recipe = ((RecipeResponse)response.body()).getRecipe();
+                    mRecipe.postValue(recipe);
+                } else {
+                    String error = response.errorBody().string();
+                    Log.e(TAG, "run: "+ error );
+                    mRecipe.postValue(null);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                mRecipe.postValue(null);
+            }
+
+        }
+
+        private Call<RecipeResponse> getRecipe(String rId) {
+            return ServiceGenerator.getRecipeApi().getRecipe(rId);
+        }
+
+        private void cancelRequest(){
+            Log.d(TAG, "cancelRequest: canceling the search request");
+            cancelRequest = true;
+        }
     }
 
     // doing the search query
@@ -114,6 +178,10 @@ public class RecipeApiClient {
     public void cancelRequest(){
         if (mRetrieveRecipeRunnable != null) {
             mRetrieveRecipeRunnable.cancelRequest();
+        }
+
+        if (mRecipeRunnable != null) {
+            mRecipeRunnable.cancelRequest();
         }
     }
 }
