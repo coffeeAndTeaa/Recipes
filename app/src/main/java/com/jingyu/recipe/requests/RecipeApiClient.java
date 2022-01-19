@@ -32,6 +32,7 @@ public class RecipeApiClient {
     private MutableLiveData<Recipe> mRecipe;
     private RetrieveRecipeRunnable mRetrieveRecipeRunnable;
     private RecipeRunnable mRecipeRunnable;
+    private MutableLiveData<Boolean> mRecipeRequestTimeout = new MutableLiveData<>();
 
     public static RecipeApiClient getInstance() {
         if (instance == null) {
@@ -101,6 +102,7 @@ public class RecipeApiClient {
                 }
                 if (response.code() == 200) {
                     Recipe recipe = ((RecipeResponse)response.body()).getRecipe();
+                    Log.d(TAG, "recipe is" + recipe.getTitle());
                     mRecipe.postValue(recipe);
                 } else {
                     String error = response.errorBody().string();

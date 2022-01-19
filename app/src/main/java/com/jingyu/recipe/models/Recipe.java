@@ -3,6 +3,8 @@ package com.jingyu.recipe.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.Arrays;
 
 public class Recipe implements Parcelable {
@@ -10,8 +12,11 @@ public class Recipe implements Parcelable {
     private String title;
     private String publisher;
     private String[] ingredients;
+    @SerializedName(value="id", alternate = "recipe_id")
     private String id;
+    @SerializedName(value="imageUrl", alternate = "image_url")
     private String imageUrl;
+    @SerializedName(value="socialUrl", alternate = "social_rank")
     private float socialUrl;
 
     public Recipe(String title, String publisher, String[] ingredients, String id, String imageUrl, float socialUrl) {
