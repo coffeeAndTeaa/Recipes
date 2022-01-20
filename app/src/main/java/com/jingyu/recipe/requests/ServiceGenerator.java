@@ -1,6 +1,7 @@
 package com.jingyu.recipe.requests;
 
 import com.jingyu.recipe.util.Constants;
+import com.jingyu.recipe.util.LiveDataCallAdapterFactory;
 
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -9,6 +10,7 @@ public class ServiceGenerator {
 
     private static Retrofit.Builder retrofitBuilder = new Retrofit.Builder()
             .baseUrl(Constants.BaseUrl)
+            .addCallAdapterFactory(new LiveDataCallAdapterFactory())
             .addConverterFactory(GsonConverterFactory.create());
 
     private static Retrofit retrofit = retrofitBuilder.build();

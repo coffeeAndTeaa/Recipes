@@ -1,38 +1,20 @@
 package com.jingyu.recipe;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-
 import com.jingyu.recipe.adapters.OnRecipeListener;
 import com.jingyu.recipe.adapters.RecipeRecyclerAdapter;
-import com.jingyu.recipe.models.Recipe;
-import com.jingyu.recipe.requests.RecipeApi;
-import com.jingyu.recipe.requests.ServiceGenerator;
-import com.jingyu.recipe.requests.responses.RecipeSearchResponse;
-import com.jingyu.recipe.util.Constants;
 import com.jingyu.recipe.util.VerticalSpacingItemDecorator;
 import com.jingyu.recipe.viewmodels.RecipeListViewModel;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class RecipeListActivity extends BaseActivity implements OnRecipeListener {
     private static final String TAG = "RecipeListActivity";
@@ -57,7 +39,6 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
 
 
     }
-
 
     private void initRecyclerView(){
         VerticalSpacingItemDecorator decorator = new VerticalSpacingItemDecorator(30);
