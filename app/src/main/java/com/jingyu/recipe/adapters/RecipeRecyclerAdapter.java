@@ -22,6 +22,7 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
     private static final int RECIPE_TYPE = 1;
     private static final int LOADING_TYPE = 2;
     private static final int CATEGORY_TYPE = 3;
+    private static final int EXHAUSTED_TYPE = 4;
 
     private List<Recipe> mRecipes;
     private OnRecipeListener mOnRecipeListener;
@@ -52,6 +53,11 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
                 return new CategoryViewHolder(view, mOnRecipeListener);
             }
 
+            case EXHAUSTED_TYPE:{
+                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_search_exhausted, parent, false);
+                return new SearchExhaustedViewHolder(view);
+            }
+
             default:{
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_recipe_list_item, parent, false);
                 return new RecipeViewHolder(view, mOnRecipeListener);
@@ -60,6 +66,14 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
 
 
 
+    }
+
+    public void setQueryExhausted(){
+        hideLoading();
+        Recipe exhaustedRecipe = new Recipe();
+        exhaustedRecipe.setTitle("EXHAUSTED...");
+        mRecipes.add(exhaustedRecipe);
+        notifyDataSetChanged();
     }
 
     @Override
@@ -108,28 +122,63 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
 
     @Override
     public int getItemViewType(int position) {
-        if (mRecipes.get(position).getSocialUrl() == -1) {
+        if(mRecipes.get(position).getSocialUrl() == -1){
             return CATEGORY_TYPE;
         }
-        else if (position == mRecipes.size() - 1
-                && position != 0
-                && !mRecipes.get(position).getTitle().equals("EXHAUSTED...")){
+        else if(mRecipes.get(position).getTitle().equals("LOADING...")){
             return LOADING_TYPE;
         }
-        else if (mRecipes.get(position).getTitle().equals("LOADING...")){
-            return LOADING_TYPE;
-        } else {
+        else if(mRecipes.get(position).getTitle().equals("EXHAUSTED...")) {
+            return EXHAUSTED_TYPE;
+        }
+        else{
             return RECIPE_TYPE;
         }
     }
 
+    public void hideLoading(){
+        if(isLoading()) {
+            if (mRecipes.get(0).getTitle().equals("LOADING...")) {
+                mRecipes.remove(mRecipes.size() - 1);
+            }
+        }
+        if(isLoading()){
+            if(mRecipes.get(mRecipes.size() - 1).getTitle().equals("LOADING...")){
+                mRecipes.remove(mRecipes.size() - 1);
+            }
+        }
+        notifyDataSetChanged();
+    }
+
+    private void clearRecipesList(){
+        if(mRecipes == null){
+            mRecipes = new ArrayList<>();
+        }
+        else {
+            mRecipes.clear();
+        }
+        notifyDataSetChanged();
+    }
+
+
+    // this one is for doing the search while nothing comes back
+    public void displayOnlyLoading(){
+        clearRecipesList();
+        Recipe recipe = new Recipe();
+        recipe.setTitle("LOADING...");
+        mRecipes.add(recipe);
+        notifyDataSetChanged();
+    }
+
+    // this one is for pagination
     public void displayLoading(){
-        if (!isLoading()){
+        if(mRecipes == null){
+            mRecipes = new ArrayList<>();
+        }
+        if(!isLoading()){
             Recipe recipe = new Recipe();
             recipe.setTitle("LOADING...");
-            List<Recipe> loadingList = new ArrayList<>();
-            loadingList.add(recipe);
-            mRecipes = loadingList;
+            mRecipes.add(recipe); // loading at bottom of screen
             notifyDataSetChanged();
         }
     }

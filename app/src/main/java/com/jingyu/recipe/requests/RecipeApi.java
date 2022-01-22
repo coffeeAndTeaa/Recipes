@@ -1,5 +1,8 @@
 package com.jingyu.recipe.requests;
 
+import androidx.lifecycle.LiveData;
+
+import com.jingyu.recipe.requests.responses.ApiResponse;
 import com.jingyu.recipe.requests.responses.RecipeResponse;
 import com.jingyu.recipe.requests.responses.RecipeSearchResponse;
 
@@ -11,14 +14,14 @@ public interface RecipeApi {
 
     // search
     @GET("api/v2/recipes")
-    Call<RecipeSearchResponse> searchRecipe(
+    LiveData<ApiResponse<RecipeSearchResponse>> searchRecipe(
             @Query("q") String query,
             @Query("page") String page
     );
 
     // Get Recipe Request
     @GET("api/get")
-    Call<RecipeResponse> getRecipe(
+    LiveData<ApiResponse<RecipeResponse>> getRecipe(
             @Query("rId") String recipe_id
     );
 

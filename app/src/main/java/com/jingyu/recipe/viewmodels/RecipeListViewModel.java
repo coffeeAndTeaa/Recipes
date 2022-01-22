@@ -1,8 +1,10 @@
 package com.jingyu.recipe.viewmodels;
 
 import android.app.Application;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
@@ -21,6 +23,12 @@ public class RecipeListViewModel extends AndroidViewModel {
     private static final String TAG = "RecipeListViewModel";
     private MediatorLiveData<Resource<List<Recipe>>> recipes = new MediatorLiveData<>();
     private RecipeRepository recipeRepository;
+
+    //query extras
+    private boolean isQueryExhausted;
+    private boolean isPerformingQuery;
+    private int pageNumber; // keep track for pagination
+    private String query;
 
     public enum ViewState {CATEGORIES, RECIPES}
 
@@ -48,14 +56,55 @@ public class RecipeListViewModel extends AndroidViewModel {
     }
 
     public void searchRecipesApi(String query, int pageNumber) {
-        final LiveData<Resource<List<Recipe>>> repositorySource = recipeRepository.searchRecipesApi(query, pageNumber);
+        if(!isPerformingQuery) {
+            if (pageNumber == 0) {
+                pageNumber = 1;
+            }
+            this.pageNumber = pageNumber;
+            this.query = query;
+            isQueryExhausted = false;
+            executeSearch();
+        }
+    }
 
+    public int getPageNumber(){
+        return pageNumber;
+    }
+
+    public static final String QUERY_EXHAUSTED = "Query is exhausted.";
+    private void executeSearch(){
+        isPerformingQuery = true;
+        viewState.setValue(ViewState.RECIPES);
+        final LiveData<Resource<List<Recipe>>> repositorySource = recipeRepository.searchRecipesApi(query, pageNumber);
         recipes.addSource(repositorySource, new Observer<Resource<List<Recipe>>>() {
             @Override
-            public void onChanged(Resource<List<Recipe>> listResource) {
-
-                // react to the data
-                recipes.setValue(listResource);
+            public void onChanged(@Nullable Resource<List<Recipe>> listResource) {
+                if(listResource != null){
+                    recipes.setValue(listResource);
+                    if(listResource.status == Resource.Status.SUCCESS ){
+                        isPerformingQuery = false;
+                        if(listResource.data != null) {
+                            if (listResource.data.size() == 0) {
+                                Log.d(TAG, "onChanged: query is EXHAUSTED...");
+                                recipes.setValue(new Resource<List<Recipe>>(
+                                        Resource.Status.ERROR,
+                                        listResource.data,
+                                        QUERY_EXHAUSTED
+                                ));
+                                isPerformingQuery = true;
+                            }
+                        }
+                        // must remove or it will keep listening to repository
+                        recipes.removeSource(repositorySource);
+                    }
+                    else if(listResource.status == Resource.Status.ERROR ){
+                        isPerformingQuery = false;
+                        recipes.removeSource(repositorySource);
+                    }
+                }
+                else{
+                    recipes.removeSource(repositorySource);
+                }
             }
         });
     }

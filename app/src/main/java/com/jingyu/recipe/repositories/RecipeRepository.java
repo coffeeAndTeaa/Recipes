@@ -11,6 +11,7 @@ import com.jingyu.recipe.AppExecutors;
 import com.jingyu.recipe.models.Recipe;
 import com.jingyu.recipe.persistence.RecipeDao;
 import com.jingyu.recipe.persistence.RecipeDatabase;
+import com.jingyu.recipe.requests.ServiceGenerator;
 import com.jingyu.recipe.requests.responses.ApiResponse;
 import com.jingyu.recipe.requests.responses.RecipeSearchResponse;
 import com.jingyu.recipe.util.NetworkBoundResource;
@@ -41,7 +42,7 @@ public class RecipeRepository {
 
             // fetch result from the internet and insert into the cache
             @Override
-            protected void saveCallResult(@NonNull RecipeSearchResponse item) {
+            public void saveCallResult(@NonNull RecipeSearchResponse item) {
                 if (item.getRecipes() != null) {
 
                     // construct the a recipe array
@@ -67,21 +68,21 @@ public class RecipeRepository {
             }
 
             @Override
-            protected boolean shouldFetch(@Nullable List<Recipe> data) {
+            public boolean shouldFetch(@Nullable List<Recipe> data) {
                 return true;
             }
 
             @NonNull
             @Override
-            protected LiveData<List<Recipe>> loadFromDb() {
+            public LiveData<List<Recipe>> loadFromDb() {
                 return recipeDao.searchRecipes(query, pageNumber);
             }
 
             // make retrofit request and convert Call<RecipeSearchResponse> into liveData
             @NonNull
             @Override
-            protected LiveData<ApiResponse<RecipeSearchResponse>> createCall() {
-                return null;
+            public LiveData<ApiResponse<RecipeSearchResponse>> createCall() {
+                return ServiceGenerator.getRecipeApi().searchRecipe(query, String.valueOf(pageNumber));
             }
         }.getAsLiveData();
     }

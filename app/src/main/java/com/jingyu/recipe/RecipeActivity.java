@@ -52,19 +52,19 @@ public class RecipeActivity extends BaseActivity {
             Recipe recipe = getIntent().getParcelableExtra("recipe");
             Log.d(TAG, "getIncomingIntent: " + recipe.getTitle());
             Log.d(TAG, "getIncomingIntent: " + recipe.getId());
-            mRecipeViewModel.searchRecipeById(recipe.getId());
+//            mRecipeViewModel.searchRecipeById(recipe.getId());
         }
     }
 
     private void subscribeObservers(){
-        mRecipeViewModel.getRecipe().observe(this, new Observer<Recipe>() {
-            @Override
-            public void onChanged(@Nullable Recipe recipe) {
-                if (recipe != null) {
-                    setRecipeProperties(recipe);
-                }
-            }
-        });
+//        mRecipeViewModel.getRecipe().observe(this, new Observer<Recipe>() {
+//            @Override
+//            public void onChanged(@Nullable Recipe recipe) {
+//                if (recipe != null) {
+//                    setRecipeProperties(recipe);
+//                }
+//            }
+//        });
     }
 
     private void setRecipeProperties(Recipe recipe){

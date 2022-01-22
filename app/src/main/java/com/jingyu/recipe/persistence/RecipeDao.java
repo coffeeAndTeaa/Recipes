@@ -23,7 +23,7 @@ public interface RecipeDao {
 
     @Query("UPDATE recipes SET title = :title, publisher =:publisher, image_url =:image_url, social_rank = :social_rank " +
             "WHERE id = :recipe_id")
-    LiveData<List<Recipe>> updateRecipe(String recipe_id, String title,
+    void updateRecipe(String recipe_id, String title,
                                         String publisher, String image_url, float social_rank);
 
     @Query("SELECT * FROM recipes WHERE title LIKE '%' || :query || '%' OR " + " ingredients LIKE '%' || :query || '%'" +
