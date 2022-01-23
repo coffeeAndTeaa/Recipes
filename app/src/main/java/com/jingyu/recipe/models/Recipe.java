@@ -27,6 +27,7 @@ public class Recipe implements Parcelable {
     private String publisher;
 
     @ColumnInfo(name = "ingredients")
+    @SerializedName(value="ingredients`")
     private String[] ingredients;
 
     @ColumnInfo(name = "image_url")

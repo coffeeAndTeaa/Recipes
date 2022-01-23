@@ -13,7 +13,9 @@ import com.jingyu.recipe.persistence.RecipeDao;
 import com.jingyu.recipe.persistence.RecipeDatabase;
 import com.jingyu.recipe.requests.ServiceGenerator;
 import com.jingyu.recipe.requests.responses.ApiResponse;
+import com.jingyu.recipe.requests.responses.RecipeResponse;
 import com.jingyu.recipe.requests.responses.RecipeSearchResponse;
+import com.jingyu.recipe.util.Constants;
 import com.jingyu.recipe.util.NetworkBoundResource;
 import com.jingyu.recipe.util.Resource;
 
@@ -84,6 +86,53 @@ public class RecipeRepository {
             public LiveData<ApiResponse<RecipeSearchResponse>> createCall() {
                 return ServiceGenerator.getRecipeApi().searchRecipe(query, String.valueOf(pageNumber));
             }
+        }.getAsLiveData();
+    }
+
+    public LiveData<Resource<Recipe>> searchRecipeApi(final String recipeId){
+        return new NetworkBoundResource<Recipe, RecipeResponse>(AppExecutors.getInstance()){
+
+            @Override
+            public void saveCallResult(@NonNull RecipeResponse item) {
+                
+                if(item.getRecipe() != null){
+                    Log.d(TAG, "saveCallResult: " + item.toString());
+                    item.getRecipe().setTimestamp((int)(System.currentTimeMillis() / 1000)); // save time in seconds
+                    recipeDao.insertRecipe(item.getRecipe());
+                }
+            }
+
+            @Override
+            public boolean shouldFetch(@Nullable Recipe data) {
+                Log.d(TAG, "shouldFetch: recipe: " + data.toString());
+                int currentTime = (int)(System.currentTimeMillis() / 1000);
+                Log.d(TAG, "shouldFetch: current time: " + currentTime);
+                int lastRefresh = data.getTimestamp();
+                Log.d(TAG, "shouldFetch: last refresh: " + lastRefresh);
+                Log.d(TAG, "shouldFetch: it's been " + ((currentTime - lastRefresh) / 60 / 60 / 24)
+                        + " days since this recipe was refreshed. 30 days must elapse.");
+                if(((System.currentTimeMillis() / 1000) - data.getTimestamp()) >= Constants.RECIPE_REFRESH_TIME){
+                    Log.d(TAG, "shouldFetch: SHOULD REFRESH RECIPE? " + true);
+                    return true;
+                }
+                Log.d(TAG, "shouldFetch: SHOULD REFRESH RECIPE? " + false);
+                return false;
+            }
+
+            @NonNull
+            @Override
+            public LiveData<Recipe> loadFromDb() {
+                return recipeDao.getRecipe(recipeId);
+            }
+
+            @NonNull
+            @Override
+            public LiveData<ApiResponse<RecipeResponse>> createCall() {
+                return ServiceGenerator.getRecipeApi().getRecipe(
+                        recipeId
+                );
+            }
+
         }.getAsLiveData();
     }
 
