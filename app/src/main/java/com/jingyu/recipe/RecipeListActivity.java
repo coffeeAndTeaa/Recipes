@@ -3,6 +3,7 @@ package com.jingyu.recipe;
 import static com.jingyu.recipe.viewmodels.RecipeListViewModel.QUERY_EXHAUSTED;
 
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SearchView;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
@@ -13,6 +14,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestManager;
+import com.bumptech.glide.request.RequestOptions;
 import com.jingyu.recipe.adapters.OnRecipeListener;
 import com.jingyu.recipe.adapters.RecipeRecyclerAdapter;
 import com.jingyu.recipe.models.Recipe;
@@ -51,15 +55,34 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
         subscribeObservers();
         setSupportActionBar(findViewById(R.id.toolbar));
 
+    }
 
+    private RequestManager initGlide(){
+        RequestOptions options = new RequestOptions()
+                .placeholder(R.drawable.white_background);
+
+        return Glide.with(this).setDefaultRequestOptions(options);
     }
 
     private void initRecyclerView(){
         VerticalSpacingItemDecorator decorator = new VerticalSpacingItemDecorator(30);
         mRecyclerView.addItemDecoration(decorator);
-        mAdapter = new RecipeRecyclerAdapter(this);
+        mAdapter = new RecipeRecyclerAdapter(this, initGlide());
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+
+                if(!mRecyclerView.canScrollVertically(1)
+                        // only search on recipes page
+                        && mRecipeListViewModel.getViewState().getValue() == RecipeListViewModel.ViewState.RECIPES){
+                    // search the next page
+                    mRecipeListViewModel.searchNextPage();
+                }
+            }
+        });
     }
 
     private void initSearchView(){
@@ -139,7 +162,9 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
     }
 
     private void searchRecipeApi(String query) {
+        mRecyclerView.smoothScrollToPosition(0);
         mRecipeListViewModel.searchRecipesApi(query, 1);
+        mSearchView.clearFocus();
     }
 
     @Override
@@ -159,4 +184,13 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
         mAdapter.displaySearchCategories();
     }
 
+    @Override
+    public void onBackPressed() {
+        if (mRecipeListViewModel.getViewState().getValue() == RecipeListViewModel.ViewState.CATEGORIES) {
+            super.onBackPressed();
+        }else {
+            mRecipeListViewModel.setViewCategories();
+            mRecipeListViewModel.cancelSearchRequest();
+        }
+    }
 }

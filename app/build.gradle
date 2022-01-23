@@ -41,6 +41,7 @@ dependencies {
     // retrofit
     def retrofit_version = "2.5.0"
     implementation "com.squareup.retrofit2:retrofit:$retrofit_version"
+    implementation "com.squareup.okhttp3:okhttp:3.0.0"
 
     // Gson converter
     implementation "com.squareup.retrofit2:converter-gson:$retrofit_version"
@@ -57,6 +58,10 @@ dependencies {
     def glideVersion = "4.9.0"
     implementation "com.github.bumptech.glide:glide:$glideVersion"
     annotationProcessor "com.github.bumptech.glide:compiler:$glideVersion"
+
+    implementation("com.github.bumptech.glide:recyclerview-integration:$glideVersion") {
+        transitive = false
+    }
     // design support
     implementation 'com.google.android.material:material:1.0.0'
     // circle image view
