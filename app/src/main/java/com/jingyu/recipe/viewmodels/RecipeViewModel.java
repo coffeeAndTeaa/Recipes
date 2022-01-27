@@ -1,30 +1,26 @@
 package com.jingyu.recipe.viewmodels;
 
+import android.app.Application;
+
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModel;
 import com.jingyu.recipe.models.Recipe;
-import com.jingyu.recipe.repository.RecipeRepository;
+import com.jingyu.recipe.repositories.RecipeRepository;
+import com.jingyu.recipe.util.Resource;
 
-public class RecipeViewModel extends ViewModel {
 
-    private RecipeRepository mRecipeRepository;
-    private String mId;
+public class RecipeViewModel extends AndroidViewModel {
 
-    public RecipeViewModel(){
-        this.mRecipeRepository = RecipeRepository.getInstance();
+    private RecipeRepository recipeRepository;
+
+    public RecipeViewModel(@NonNull Application application) {
+        super(application);
+        recipeRepository = RecipeRepository.getInstance(application);
     }
 
-    public LiveData<Recipe> getRecipe(){
-        return mRecipeRepository.getRecipe();
+    public LiveData<Resource<Recipe>> searchRecipeApi(String recipeId) {
+        return recipeRepository.searchRecipeApi(recipeId);
     }
-
-    public void searchRecipeById(String rId) {
-        mId = rId;
-        mRecipeRepository.searchRecipeById(rId);
-    }
-
-    public String getId(){
-        return mId;
-    }
-
 }

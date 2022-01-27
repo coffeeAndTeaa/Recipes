@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatImageView;
@@ -16,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.jingyu.recipe.models.Recipe;
+import com.jingyu.recipe.util.Resource;
 import com.jingyu.recipe.viewmodels.RecipeViewModel;
 
 public class RecipeActivity extends BaseActivity {
@@ -41,9 +43,6 @@ public class RecipeActivity extends BaseActivity {
 
         // create a viewModel
         mRecipeViewModel = new ViewModelProvider(this).get(RecipeViewModel.class);
-
-        showProgressBar(true);
-        subscribeObservers();
         getIncomingIntent();
     }
 
@@ -52,48 +51,91 @@ public class RecipeActivity extends BaseActivity {
             Recipe recipe = getIntent().getParcelableExtra("recipe");
             Log.d(TAG, "getIncomingIntent: " + recipe.getTitle());
             Log.d(TAG, "getIncomingIntent: " + recipe.getId());
-            mRecipeViewModel.searchRecipeById(recipe.getId());
+            subscribeObservers(recipe.getId());
         }
     }
 
-    private void subscribeObservers(){
-        mRecipeViewModel.getRecipe().observe(this, new Observer<Recipe>() {
+    private void subscribeObservers(final String recipeId){
+        mRecipeViewModel.searchRecipeApi(recipeId).observe(this, new Observer<Resource<Recipe>>() {
             @Override
-            public void onChanged(@Nullable Recipe recipe) {
-                if (recipe != null) {
-                    setRecipeProperties(recipe);
+            public void onChanged(Resource<Recipe> recipeResource) {
+                if (recipeResource != null) {
+                    if (recipeResource.data != null) {
+                        switch (recipeResource.status) {
+                            case LOADING: {
+                                showProgressBar(true);
+                                break;
+                            }
+                            case SUCCESS: {
+                                Log.d(TAG, "onChanged: cache has been refreshed.");
+                                Log.d(TAG, "onChanged: status: SUCCESS, Recipe: " + recipeResource.data.getTitle());
+                                showParent();
+                                showProgressBar(false);
+                                setRecipeProperties(recipeResource.data);
+                                break;
+                            }
+                            case ERROR: {
+                                Log.e(TAG, "onChanged: status: ERROR, Recipe: " + recipeResource.data.getTitle());
+                                Log.e(TAG, "onChanged: status: ERROR message: " + recipeResource.message);
+                                Toast.makeText(RecipeActivity.this, recipeResource.message, Toast.LENGTH_SHORT).show();
+                                showParent();
+                                showProgressBar(false);
+                                setRecipeProperties(recipeResource.data);
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         });
     }
 
     private void setRecipeProperties(Recipe recipe){
-        Log.d(TAG, "setRecipeProperties: " + recipe.getTitle());
-        if (recipe != null) {
-            RequestOptions requestOptions = new RequestOptions().placeholder(R.drawable.ic_launcher_background);
-            Log.d(TAG, "setRecipeProperties: " + recipe.getImageUrl());
-            Glide.with(this).
-                    setDefaultRequestOptions(requestOptions)
+        if(recipe != null){
+            RequestOptions options = new RequestOptions()
+                    .placeholder(R.drawable.white_background)
+                    .error(R.drawable.white_background);
+
+            Glide.with(this)
+                    .setDefaultRequestOptions(options)
                     .load(recipe.getImageUrl())
                     .into(mRecipeImage);
 
             mRecipeTitle.setText(recipe.getTitle());
-            mRecipeRank.setText(String.valueOf(recipe.getSocialUrl()));
+            mRecipeRank.setText(String.valueOf(Math.round(recipe.getSocialUrl())));
 
-            mRecipeIngredientsContainer.removeAllViews();
-            for (String ingredient: recipe.getIngredients()) {
+            setIngredients(recipe);
+        }
+    }
+
+    private void setIngredients(Recipe recipe){
+        mRecipeIngredientsContainer.removeAllViews();
+        Log.d(TAG, "setIngredients: " + recipe.toString());
+
+        if(recipe.getIngredients() != null){
+            for(String ingredient: recipe.getIngredients()){
                 TextView textView = new TextView(this);
                 textView.setText(ingredient);
                 textView.setTextSize(15);
-                textView.setLayoutParams(new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT));
+                textView.setLayoutParams(
+                        new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.WRAP_CONTENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT));
                 mRecipeIngredientsContainer.addView(textView);
             }
         }
-        showParent();
-        showProgressBar(false);
+        else{
+            TextView textView = new TextView(this);
+            textView.setText("Error retrieving ingredients.\nCheck network connection.");
+            textView.setTextSize(15);
+            textView.setLayoutParams(
+                    new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT));
+            mRecipeIngredientsContainer.addView(textView);
+        }
     }
+
 
     private void showParent(){
         mScrollView.setVisibility(View.VISIBLE);

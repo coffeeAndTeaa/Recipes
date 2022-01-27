@@ -1,34 +1,49 @@
 package com.jingyu.recipe.adapters;
 
 import android.net.Uri;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.ListPreloader;
+import com.bumptech.glide.RequestBuilder;
+import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.util.ViewPreloadSizeProvider;
 import com.jingyu.recipe.R;
 import com.jingyu.recipe.models.Recipe;
 import com.jingyu.recipe.util.Constants;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
+        implements
+        ListPreloader.PreloadModelProvider<String>{
 
     private static final int RECIPE_TYPE = 1;
     private static final int LOADING_TYPE = 2;
     private static final int CATEGORY_TYPE = 3;
+    private static final int EXHAUSTED_TYPE = 4;
 
     private List<Recipe> mRecipes;
     private OnRecipeListener mOnRecipeListener;
+    private RequestManager requestManager;
+    private ViewPreloadSizeProvider<String> preloadSizeProvider;
 
-    public RecipeRecyclerAdapter(OnRecipeListener mOnRecipeListener) {
+    public RecipeRecyclerAdapter(OnRecipeListener mOnRecipeListener,
+                                 RequestManager requestManager,
+                                 ViewPreloadSizeProvider<String> preloadSizeProvider) {
         this.mOnRecipeListener = mOnRecipeListener;
-        mRecipes = new ArrayList<>();
+        this.requestManager = requestManager;
+        this.preloadSizeProvider = preloadSizeProvider;
     }
 
     @NonNull
@@ -39,7 +54,7 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
 
             case RECIPE_TYPE:{
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_recipe_list_item, parent,false);
-                return new RecipeViewHolder(view, mOnRecipeListener);
+                return new RecipeViewHolder(view, mOnRecipeListener, requestManager, preloadSizeProvider);
             }
 
             case LOADING_TYPE:{
@@ -49,17 +64,30 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
 
             case CATEGORY_TYPE:{
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_category_list_item, parent, false);
-                return new CategoryViewHolder(view, mOnRecipeListener);
+                return new CategoryViewHolder(view, mOnRecipeListener, requestManager);
+            }
+
+            case EXHAUSTED_TYPE:{
+                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_search_exhausted, parent, false);
+                return new SearchExhaustedViewHolder(view);
             }
 
             default:{
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_recipe_list_item, parent, false);
-                return new RecipeViewHolder(view, mOnRecipeListener);
+                return new RecipeViewHolder(view, mOnRecipeListener, requestManager, preloadSizeProvider);
             }
         }
 
 
 
+    }
+
+    public void setQueryExhausted(){
+        hideLoading();
+        Recipe exhaustedRecipe = new Recipe();
+        exhaustedRecipe.setTitle("EXHAUSTED...");
+        mRecipes.add(exhaustedRecipe);
+        notifyDataSetChanged();
     }
 
     @Override
@@ -68,32 +96,10 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
         int itemViewType = getItemViewType(position);
         if (itemViewType == RECIPE_TYPE) {
             // set the image
-            RequestOptions options = new RequestOptions()
-                    .centerCrop()
-                    .error(R.drawable.ic_launcher_background);
-
-            Glide.with(((RecipeViewHolder) holder).itemView)
-                    .setDefaultRequestOptions(options)
-                    .load(mRecipes.get(position).getImageUrl())
-                    .into(((RecipeViewHolder) holder).image);
-
-
-            ((RecipeViewHolder)holder).title.setText(mRecipes.get(position).getTitle());
-            ((RecipeViewHolder)holder).publisher.setText(mRecipes.get(position).getPublisher());
-            ((RecipeViewHolder)holder).socialScore.setText(String.valueOf(Math.round(mRecipes.get(position).getSocialUrl())));
+            ((RecipeViewHolder) holder).onBind(mRecipes.get(position));
         }
         else if (itemViewType == CATEGORY_TYPE) {
-            RequestOptions options = new RequestOptions()
-                    .centerCrop()
-                    .error(R.drawable.ic_launcher_background);
-
-            Uri path = Uri.parse("android.resource://com.jingyu.recipe/drawable/" + mRecipes.get(position).getImageUrl());
-            Glide.with(((CategoryViewHolder)holder).itemView)
-                    .setDefaultRequestOptions(options)
-                    .load(path)
-                    .into(((CategoryViewHolder)holder).categoryImage);
-
-            ((CategoryViewHolder)holder).categoryTitle.setText(mRecipes.get(position).getTitle());
+            ((CategoryViewHolder)holder).onBind(mRecipes.get(position));
         }
 
     }
@@ -108,28 +114,63 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
 
     @Override
     public int getItemViewType(int position) {
-        if (mRecipes.get(position).getSocialUrl() == -1) {
+        if(mRecipes.get(position).getSocialUrl() == -1){
             return CATEGORY_TYPE;
         }
-        else if (position == mRecipes.size() - 1
-                && position != 0
-                && !mRecipes.get(position).getTitle().equals("EXHAUSTED...")){
+        else if(mRecipes.get(position).getTitle().equals("LOADING...")){
             return LOADING_TYPE;
         }
-        else if (mRecipes.get(position).getTitle().equals("LOADING...")){
-            return LOADING_TYPE;
-        } else {
+        else if(mRecipes.get(position).getTitle().equals("EXHAUSTED...")) {
+            return EXHAUSTED_TYPE;
+        }
+        else{
             return RECIPE_TYPE;
         }
     }
 
+    public void hideLoading(){
+        if(isLoading()) {
+            if (mRecipes.get(0).getTitle().equals("LOADING...")) {
+                mRecipes.remove(mRecipes.size() - 1);
+            }
+        }
+        if(isLoading()){
+            if(mRecipes.get(mRecipes.size() - 1).getTitle().equals("LOADING...")){
+                mRecipes.remove(mRecipes.size() - 1);
+            }
+        }
+        notifyDataSetChanged();
+    }
+
+    private void clearRecipesList(){
+        if(mRecipes == null){
+            mRecipes = new ArrayList<>();
+        }
+        else {
+            mRecipes.clear();
+        }
+        notifyDataSetChanged();
+    }
+
+
+    // this one is for doing the search while nothing comes back
+    public void displayOnlyLoading(){
+        clearRecipesList();
+        Recipe recipe = new Recipe();
+        recipe.setTitle("LOADING...");
+        mRecipes.add(recipe);
+        notifyDataSetChanged();
+    }
+
+    // this one is for pagination
     public void displayLoading(){
-        if (!isLoading()){
+        if(mRecipes == null){
+            mRecipes = new ArrayList<>();
+        }
+        if(!isLoading()){
             Recipe recipe = new Recipe();
             recipe.setTitle("LOADING...");
-            List<Recipe> loadingList = new ArrayList<>();
-            loadingList.add(recipe);
-            mRecipes = loadingList;
+            mRecipes.add(recipe); // loading at bottom of screen
             notifyDataSetChanged();
         }
     }
@@ -173,4 +214,19 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
     }
 
 
+    @NonNull
+    @Override
+    public List<String> getPreloadItems(int position) {
+        String url = mRecipes.get(position).getImageUrl();
+        if (TextUtils.isEmpty(url)) {
+            return Collections.emptyList();
+        }
+        return Collections.singletonList(url);
+    }
+
+    @Nullable
+    @Override
+    public RequestBuilder<?> getPreloadRequestBuilder(@NonNull String item) {
+        return requestManager.load(item);
+    }
 }
